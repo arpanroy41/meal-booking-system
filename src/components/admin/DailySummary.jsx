@@ -8,11 +8,13 @@ import {
   Grid,
   GridItem,
   Spinner,
+  Button,
 } from '@patternfly/react-core';
+import { SyncAltIcon } from '@patternfly/react-icons';
 import { supabase, TABLES, BOOKING_STATUS, MEAL_TYPES } from '../../services/supabase';
 import { format } from 'date-fns';
 
-const DailySummary = () => {
+const DailySummary = () => {  
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [summary, setSummary] = useState({
     totalBookings: 0,
@@ -25,6 +27,30 @@ const DailySummary = () => {
 
   useEffect(() => {
     fetchSummary();
+
+    // Subscribe to real-time updates for bookings
+    const subscription = supabase
+      .channel('bookings_summary_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: TABLES.BOOKINGS,
+        },
+        (payload) => {
+          // Refresh summary if the change affects the selected date
+          if (payload.new?.booking_date === selectedDate || 
+              payload.old?.booking_date === selectedDate) {
+            fetchSummary();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [selectedDate]);
 
   const fetchSummary = async () => {
@@ -35,7 +61,10 @@ const DailySummary = () => {
         .select('*')
         .eq('booking_date', selectedDate);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching summary:', error);
+        throw error;
+      }
 
       const bookings = data || [];
       
@@ -80,17 +109,30 @@ const DailySummary = () => {
     <PageSection>
       <Card style={{ marginBottom: '24px' }}>
         <CardBody>
-          <Title headingLevel="h1" size="2xl" style={{ marginBottom: '24px' }}>
-            Daily Summary
-          </Title>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <Title headingLevel="h1" size="2xl">
+              Daily Summary
+            </Title>
+            <Button 
+              variant="secondary" 
+              icon={<SyncAltIcon />}
+              onClick={fetchSummary}
+              isDisabled={loading}
+            >
+              Refresh
+            </Button>
+          </div>
 
-          <div style={{ maxWidth: '300px' }}>
+          <div style={{ maxWidth: '300px', position: 'relative', zIndex: 1 }}>
             <DatePicker
               value={selectedDate}
-              onChange={(e, str) => setSelectedDate(str)}
+              onChange={(e, str, date) => {
+                if (str) {
+                  setSelectedDate(str);
+                }
+              }}
               placeholder="YYYY-MM-DD"
-              dateFormat={(date) => format(date, 'yyyy-MM-dd')}
-              dateParse={(str) => new Date(str)}
+              appendTo={() => document.body}
             />
           </div>
         </CardBody>

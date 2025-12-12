@@ -4,13 +4,7 @@ import {
   Card,
   CardBody,
   Title,
-  DataList,
-  DataListItem,
-  DataListItemRow,
-  DataListItemCells,
-  DataListCell,
   Button,
-  ButtonVariant,
   Modal,
   ModalHeader,
   ModalBody,
@@ -22,6 +16,15 @@ import {
   Badge,
   Alert,
 } from '@patternfly/react-core';
+import {
+  Table,
+  TableText,
+  Thead,
+  Tr,
+  Th,
+  Tbody,
+  Td,
+} from '@patternfly/react-table';
 import { CheckCircleIcon } from '@patternfly/react-icons';
 import { supabase, TABLES, BOOKING_STATUS } from '../../services/supabase';
 import { format } from 'date-fns';
@@ -146,6 +149,15 @@ const ApprovalManagement = () => {
     return type === 'veg' ? '🥗 Vegetarian' : '🍗 Non-Vegetarian';
   };
 
+  const columnNames = {
+    employee: 'Employee',
+    employeeId: 'Employee ID',
+    date: 'Booking Date',
+    mealType: 'Meal Type',
+    receiptNumber: 'Receipt Number',
+    submittedAt: 'Submitted At',
+  };
+
   if (loading) {
     return (
       <PageSection>
@@ -179,56 +191,65 @@ const ApprovalManagement = () => {
               }
             />
           )}
+        </CardBody>
 
-          {pendingBookings.length === 0 ? (
+        {pendingBookings.length === 0 ? (
+          <CardBody>
             <EmptyState variant="sm" icon={CheckCircleIcon} titleText="No pending approvals" headingLevel="h4">
               <EmptyStateBody>
                 All bookings have been processed. New bookings will appear here.
               </EmptyStateBody>
             </EmptyState>
-          ) : (
-            <DataList aria-label="Pending bookings list">
+          </CardBody>
+        ) : (
+          <Table aria-label="Pending approvals table" variant='compact'>
+            <Thead>
+              <Tr>
+                <Th>{columnNames.employee}</Th>
+                <Th>{columnNames.employeeId}</Th>
+                <Th>{columnNames.date}</Th>
+                <Th>{columnNames.mealType}</Th>
+                <Th>{columnNames.receiptNumber}</Th>
+                <Th>{columnNames.submittedAt}</Th>
+                <Th>Actions</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
               {pendingBookings.map((booking) => (
-                <DataListItem key={booking.id}>
-                  <DataListItemRow>
-                    <DataListItemCells
-                      dataListCells={[
-                        <DataListCell key="employee" width={2}>
-                          <strong>{booking.employee?.name}</strong>
-                          <div style={{ fontSize: '0.9rem', color: '#6a6e73' }}>
-                            {booking.employee?.employee_id}
-                          </div>
-                        </DataListCell>,
-                        <DataListCell key="date" width={2}>
-                          {format(new Date(booking.booking_date), 'MMM dd, yyyy')}
-                        </DataListCell>,
-                        <DataListCell key="meal-type" width={2}>
-                          {getMealTypeLabel(booking.meal_type)}
-                        </DataListCell>,
-                        <DataListCell key="receipt" width={2}>
-                          {booking.receipt_number}
-                        </DataListCell>,
-                        <DataListCell key="submitted" width={2}>
-                          <div style={{ fontSize: '0.85rem', color: '#6a6e73' }}>
-                            {format(new Date(booking.created_at), 'MMM dd, HH:mm')}
-                          </div>
-                        </DataListCell>,
-                        <DataListCell key="actions" width={2}>
-                          <Button
-                            variant="primary"
-                            onClick={() => handleViewDetails(booking)}
-                          >
-                            Review
-                          </Button>
-                        </DataListCell>,
-                      ]}
-                    />
-                  </DataListItemRow>
-                </DataListItem>
+                <Tr key={booking.id}>
+                  <Td dataLabel={columnNames.employee}>
+                    <strong>{booking.employee?.name}</strong>
+                  </Td>
+                  <Td dataLabel={columnNames.employeeId}>
+                    {booking.employee?.employee_id}
+                  </Td>
+                  <Td dataLabel={columnNames.date}>
+                    {format(new Date(booking.booking_date), 'MMM dd, yyyy')}
+                  </Td>
+                  <Td dataLabel={columnNames.mealType}>
+                    {getMealTypeLabel(booking.meal_type)}
+                  </Td>
+                  <Td dataLabel={columnNames.receiptNumber}>
+                    {booking.receipt_number}
+                  </Td>
+                  <Td dataLabel={columnNames.submittedAt}>
+                    {format(new Date(booking.created_at), 'MMM dd, HH:mm')}
+                  </Td>
+                  <Td dataLabel="Actions" modifier="fitContent" hasAction>
+                    <TableText>
+                      <Button
+                        variant="primary"
+                        onClick={() => handleViewDetails(booking)}
+                      >
+                        Review
+                      </Button>
+                    </TableText>
+                  </Td>
+                </Tr>
               ))}
-            </DataList>
-          )}
-        </CardBody>
+            </Tbody>
+          </Table>
+        )}
       </Card>
 
       {/* Review Modal */}
