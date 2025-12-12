@@ -1,0 +1,45 @@
+image: node:18
+
+cache:
+  paths:
+    - node_modules/
+
+variables:
+  # These will be set in GitLab CI/CD Variables
+  VITE_SUPABASE_URL: $VITE_SUPABASE_URL
+  VITE_SUPABASE_ANON_KEY: $VITE_SUPABASE_ANON_KEY
+  VITE_APP_NAME: "Meal Booking System"
+  VITE_COMPANY_DOMAIN: $VITE_COMPANY_DOMAIN
+
+stages:
+  - build
+  - deploy
+
+before_script:
+  - npm ci
+
+build:
+  stage: build
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 hour
+  only:
+    - main
+    - develop
+
+pages:
+  stage: deploy
+  script:
+    - npm run build
+    - rm -rf public
+    - mv dist public
+    - cp public/index.html public/404.html  # For client-side routing
+  artifacts:
+    paths:
+      - public
+  only:
+    - main
+
