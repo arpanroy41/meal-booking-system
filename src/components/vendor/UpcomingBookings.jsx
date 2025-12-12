@@ -7,16 +7,19 @@ import {
   DatePicker,
   Grid,
   GridItem,
-  DataList,
-  DataListItem,
-  DataListItemRow,
-  DataListItemCells,
-  DataListCell,
   Spinner,
   EmptyState,
   EmptyStateBody,
   Button,
 } from '@patternfly/react-core';
+import {
+  Table,
+  Thead,
+  Tr,
+  Th,
+  Tbody,
+  Td,
+} from '@patternfly/react-table';
 import { SearchIcon, PrintIcon } from '@patternfly/react-icons';
 import { supabase, TABLES, BOOKING_STATUS, MEAL_TYPES } from '../../services/supabase';
 import { format, addDays } from 'date-fns';
@@ -26,6 +29,13 @@ const UpcomingBookings = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState({ veg: 0, nonVeg: 0, total: 0 });
+
+  const columnNames = {
+    receiptNumber: 'Receipt Number',
+    employeeName: 'Employee Name',
+    employeeId: 'Employee ID',
+    mealType: 'Meal Type',
+  };
 
   useEffect(() => {
     fetchBookingsForDate();
@@ -198,13 +208,16 @@ const UpcomingBookings = () => {
                 </Button>
               </div>
 
-              <div style={{ maxWidth: '300px' }}>
+              <div style={{ maxWidth: '300px', position: 'relative', zIndex: 1 }}>
                 <DatePicker
                   value={selectedDate}
-                  onChange={(e, str) => setSelectedDate(str)}
+                  onChange={(e, str, date) => {
+                    if (str) {
+                      setSelectedDate(str);
+                    }
+                  }}
                   placeholder="YYYY-MM-DD"
-                  dateFormat={(date) => format(date, 'yyyy-MM-dd')}
-                  dateParse={(str) => new Date(str)}
+                  appendTo={() => document.body}
                 />
               </div>
             </CardBody>
@@ -264,40 +277,46 @@ const UpcomingBookings = () => {
                   <Title headingLevel="h2" size="xl" style={{ marginBottom: '16px' }}>
                     Booking Details
                   </Title>
+                </CardBody>
 
-                  {bookings.length === 0 ? (
+                {bookings.length === 0 ? (
+                  <CardBody>
                     <EmptyState variant="sm" icon={SearchIcon} titleText="No bookings found" headingLevel="h4">
                       <EmptyStateBody>
                         There are no approved meal bookings for this date.
                       </EmptyStateBody>
                     </EmptyState>
-                  ) : (
-                    <DataList aria-label="Upcoming bookings">
+                  </CardBody>
+                ) : (
+                  <Table aria-label="Upcoming bookings table" variant='compact'>
+                    <Thead>
+                      <Tr>
+                        <Th>{columnNames.receiptNumber}</Th>
+                        <Th>{columnNames.employeeName}</Th>
+                        <Th>{columnNames.employeeId}</Th>
+                        <Th>{columnNames.mealType}</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
                       {bookings.map((booking) => (
-                        <DataListItem key={booking.id}>
-                          <DataListItemRow>
-                            <DataListItemCells
-                              dataListCells={[
-                                <DataListCell key="receipt" width={2}>
-                                  <strong>{booking.receipt_number}</strong>
-                                </DataListCell>,
-                                <DataListCell key="employee" width={3}>
-                                  {booking.employee?.name}
-                                  <div style={{ fontSize: '0.9rem', color: '#6a6e73' }}>
-                                    {booking.employee?.employee_id}
-                                  </div>
-                                </DataListCell>,
-                                <DataListCell key="meal-type" width={2}>
-                                  {booking.meal_type === MEAL_TYPES.VEG ? '🥗 Vegetarian' : '🍗 Non-Vegetarian'}
-                                </DataListCell>,
-                              ]}
-                            />
-                          </DataListItemRow>
-                        </DataListItem>
+                        <Tr key={booking.id}>
+                          <Td dataLabel={columnNames.receiptNumber}>
+                            <strong>{booking.receipt_number}</strong>
+                          </Td>
+                          <Td dataLabel={columnNames.employeeName}>
+                            {booking.employee?.name}
+                          </Td>
+                          <Td dataLabel={columnNames.employeeId}>
+                            {booking.employee?.employee_id}
+                          </Td>
+                          <Td dataLabel={columnNames.mealType}>
+                            {booking.meal_type === MEAL_TYPES.VEG ? '🥗 Vegetarian' : '🍗 Non-Vegetarian'}
+                          </Td>
+                        </Tr>
                       ))}
-                    </DataList>
-                  )}
-                </CardBody>
+                    </Tbody>
+                  </Table>
+                )}
               </Card>
             </GridItem>
           </>

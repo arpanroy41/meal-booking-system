@@ -21,10 +21,10 @@ export const AuthProvider = ({ children }) => {
 
   const fetchProfile = useCallback(async (userId, userObj = null) => {
     // Prevent multiple simultaneous fetches for the same user
-    if (fetchingRef.current && fetchedUserIdRef.current === userId) {
+    if (fetchingRef.current || fetchedUserIdRef.current === userId) {
       return;
     }
-
+    
     fetchingRef.current = true;
     fetchedUserIdRef.current = userId;
     
@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }) => {
       // OPTIMIZATION: Try to get role from JWT metadata first (instant, no DB query!)
       const roleFromJWT = userObj?.app_metadata?.role;
       
-      if (roleFromJWT) {
+      if (roleFromJWT) {        
         // We have the role from JWT, but still need full profile data from DB
         // Set loading to false immediately with JWT data
         setProfile({
@@ -51,16 +51,22 @@ export const AuthProvider = ({ children }) => {
           .eq('id', userId)
           .maybeSingle()
           .then(({ data, error }) => {
-            if (!error && data) {
+            fetchingRef.current = false;
+            if (!error && data) {              
               setProfile(data); // Update with full data
+            } else {
+              console.error('Error fetching full profile:', error);
             }
+          })
+          .catch((err) => {
+            console.error('Profile fetch error:', err);
+            fetchingRef.current = false;
           });
         
-        fetchingRef.current = false;
         return;
       }
       
-      // Fallback: No JWT metadata, fetch from database (slower)
+      // Fallback: No JWT metadata, fetch from database (slower)      
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
       );
@@ -78,7 +84,7 @@ export const AuthProvider = ({ children }) => {
         throw error;
       }
       
-      if (data) {
+      if (data) {        
         setProfile(data);
       } else {
         console.error('No profile found for user:', userId);
@@ -109,18 +115,24 @@ export const AuthProvider = ({ children }) => {
 
     // Listen for changes on auth state
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {                
+      async (event, session) => {        
         setUser(session?.user ?? null);
         
-        // Skip SIGNED_IN and INITIAL_SESSION profile fetch on mount since getSession handles it
-        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && !initialSessionHandled.current) {
-          initialSessionHandled.current = true;          
-          return;
-        }
-        
         // Handle different auth events
-        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-          // Fetch profile on login or profile update
+        if (event === 'INITIAL_SESSION') {
+          // Skip - already handled by getSession above
+          if (!initialSessionHandled.current) {
+            initialSessionHandled.current = true;
+          }
+          return;
+        } else if (event === 'SIGNED_IN') {
+          // Fetch profile on login
+          setLoading(true);
+          if (session?.user) {            
+            await fetchProfile(session.user.id, session.user);
+          }
+        } else if (event === 'USER_UPDATED') {
+          // Fetch profile on profile update
           if (session?.user) {            
             await fetchProfile(session.user.id, session.user);
           }
@@ -131,6 +143,8 @@ export const AuthProvider = ({ children }) => {
           setProfile(null);
           setLoading(false);
           initialSessionHandled.current = false; // Reset for next login
+          fetchedUserIdRef.current = null;
+          fetchingRef.current = false;
         }
       }
     );
