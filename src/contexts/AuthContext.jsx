@@ -118,11 +118,15 @@ export const AuthProvider = ({ children }) => {
           return;
         }
         
-        // Only fetch profile on specific events, not on every auth change
+        // Handle different auth events
         if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+          // Fetch profile on login or profile update
           if (session?.user) {            
             await fetchProfile(session.user.id, session.user);
           }
+        } else if (event === 'TOKEN_REFRESHED') {
+          // JWT expired and was refreshed automatically - just update user, no need to refetch profile
+          // User stays logged in seamlessly
         } else if (event === 'SIGNED_OUT') {
           setProfile(null);
           setLoading(false);
