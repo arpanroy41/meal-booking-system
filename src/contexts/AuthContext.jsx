@@ -17,24 +17,52 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const fetchingRef = useRef(false);
   const fetchedUserIdRef = useRef(null);
+  const initialSessionHandled = useRef(false);
 
-  const fetchProfile = useCallback(async (userId) => {
+  const fetchProfile = useCallback(async (userId, userObj = null) => {
     // Prevent multiple simultaneous fetches for the same user
     if (fetchingRef.current && fetchedUserIdRef.current === userId) {
-      console.log('fetchProfile already in progress for userId:', userId);
       return;
     }
 
     fetchingRef.current = true;
     fetchedUserIdRef.current = userId;
-    console.log('fetchProfile called for userId:', userId);
     
     try {
-      console.log('Fetching from employees table...');
+      // OPTIMIZATION: Try to get role from JWT metadata first (instant, no DB query!)
+      const roleFromJWT = userObj?.app_metadata?.role;
       
-      // Add a timeout to prevent hanging forever
+      if (roleFromJWT) {
+        // We have the role from JWT, but still need full profile data from DB
+        // Set loading to false immediately with JWT data
+        setProfile({
+          id: userId,
+          role: roleFromJWT,
+          email: userObj.email || '',
+          name: 'Loading...', // Will be updated by background fetch
+          employee_id: 'Loading...'
+        });
+        setLoading(false); // Unblock UI immediately!
+        
+        // Fetch full profile in background (non-blocking)
+        supabase
+          .from(TABLES.EMPLOYEES)
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle()
+          .then(({ data, error }) => {
+            if (!error && data) {
+              setProfile(data); // Update with full data
+            }
+          });
+        
+        fetchingRef.current = false;
+        return;
+      }
+      
+      // Fallback: No JWT metadata, fetch from database (slower)
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 10000)
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
       );
       
       const fetchPromise = supabase
@@ -45,25 +73,23 @@ export const AuthProvider = ({ children }) => {
       
       const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
 
-      console.log('fetchProfile result:', { data, error });
-
       if (error) {
         console.error('Error fetching profile:', error);
         throw error;
       }
       
       if (data) {
-        console.log('Profile loaded successfully:', data.role);
         setProfile(data);
       } else {
         console.error('No profile found for user:', userId);
+        // Use fallback profile
+        setProfile({ id: userId, role: 'employee', name: 'User', employee_id: 'TEMP' });
       }
     } catch (error) {
       console.error('Error fetching profile caught:', error);
       // Set a default profile so the app doesn't hang
       setProfile({ id: userId, role: 'employee', name: 'User', employee_id: 'TEMP' });
     } finally {
-      console.log('fetchProfile completed, setting loading=false');
       setLoading(false);
       fetchingRef.current = false;
     }
@@ -71,10 +97,11 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Check active sessions and sets the user
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {      
       setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
+      if (session?.user) {        
+        // Pass the user object to fetchProfile so it can use JWT metadata
+        fetchProfile(session.user.id, session.user);
       } else {
         setLoading(false);
       }
@@ -82,13 +109,24 @@ export const AuthProvider = ({ children }) => {
 
     // Listen for changes on auth state
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {                
         setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        } else {
+        
+        // Skip SIGNED_IN and INITIAL_SESSION profile fetch on mount since getSession handles it
+        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && !initialSessionHandled.current) {
+          initialSessionHandled.current = true;          
+          return;
+        }
+        
+        // Only fetch profile on specific events, not on every auth change
+        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+          if (session?.user) {            
+            await fetchProfile(session.user.id, session.user);
+          }
+        } else if (event === 'SIGNED_OUT') {
           setProfile(null);
           setLoading(false);
+          initialSessionHandled.current = false; // Reset for next login
         }
       }
     );
@@ -97,16 +135,10 @@ export const AuthProvider = ({ children }) => {
   }, [fetchProfile]);
 
   const signIn = async (email, password) => {
-    console.log('AuthContext signIn called with email:', email);
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
-      });
-      console.log('AuthContext signIn result:', { 
-        success: !!data?.user, 
-        userId: data?.user?.id,
-        error: error?.message 
       });
       return { data, error };
     } catch (err) {

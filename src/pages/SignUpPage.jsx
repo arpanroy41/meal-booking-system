@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Page,
@@ -16,7 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 const SignUpPage = () => {
   const navigate = useNavigate();
-  const { signUp } = useAuth();
+  const { signUp, user, loading } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -29,6 +29,13 @@ const SignUpPage = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const companyDomain = import.meta.env.VITE_COMPANY_DOMAIN || 'yourcompany.com';
+
+  // Redirect to dashboard if user is already logged in
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   const handleChange = (field) => (e, value) => {
     setFormData({ ...formData, [field]: value });

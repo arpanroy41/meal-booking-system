@@ -1,0 +1,28 @@
+# Cursor AI Rules for Meal Booking System
+
+## Documentation Files
+
+- **NEVER** create .md (markdown) documentation files unless explicitly requested by the user
+- **NEVER** create README files, guides, or tutorials proactively
+- Only create documentation when the user specifically asks: "create a guide", "write documentation", etc.
+- Focus on code implementation, not documentation generation
+
+## Code Changes
+
+- Prefer editing existing files over creating new ones
+- Always implement solutions in code first, explain later
+- Only show relevant code snippets in responses, don't create full documentation files
+
+## Communication
+
+- Explain solutions concisely in the response
+- Use code examples inline in responses
+- Don't generate separate .md files for explanations unless asked
+
+## Exceptions
+
+You MAY create .md files ONLY when:
+- User explicitly says "create a guide" or "write documentation"
+- User asks for a README or specific .md file by name
+- User requests "document this" or similar explicit documentation request
+

@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   LoginPage as PFLoginPage,
@@ -10,11 +10,10 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../services/supabase';
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { signIn } = useAuth();
+  const { signIn, user, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isValidEmail, setIsValidEmail] = useState(true);
@@ -22,6 +21,12 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRememberMeChecked, setIsRememberMeChecked] = useState(false);
+
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   const handleEmailChange = (_event, value) => {
     setEmail(value);
@@ -51,14 +56,11 @@ const LoginPage = () => {
       return;
     }
 
-    console.log('=== LOGIN ATTEMPT STARTED ===');
     setError('');
     setIsLoading(true);
 
     try {
-      console.log('Calling signIn...');
       const { data, error } = await signIn(email, password);
-      console.log('SignIn response:', { data: data?.user?.id, error });
       
       if (error) {
         setError(error.message);
@@ -69,34 +71,8 @@ const LoginPage = () => {
       }
 
       if (data.user) {
-        console.log('Login successful, user:', data.user.id);
-        
-        // Fetch the user profile to determine role
-        const { data: profileData, error: profileError } = await supabase
-          .from('employees')
-          .select('role')
-          .eq('id', data.user.id)
-          .maybeSingle();
-
-        console.log('Profile fetch result:', { profileData, profileError });
-
-        if (profileError) {
-          console.error('Profile fetch error:', profileError);
-          setError(`Could not load user profile: ${profileError.message}`);
-          setIsLoading(false);
-          return;
-        }
-
-        if (!profileData) {
-          console.error('No profile data found for user');
-          setError('Profile not found. Please contact administrator.');
-          setIsLoading(false);
-          return;
-        }
-
-        // Redirect to unified dashboard
-        const role = profileData.role || 'employee';
-        console.log('Redirecting to dashboard for role:', role);
+        // AuthContext will handle profile fetching automatically
+        // Navigate immediately for better UX
         navigate('/dashboard');
       }
     } catch (err) {
