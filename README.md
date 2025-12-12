@@ -28,7 +28,7 @@ A modern, serverless meal booking system for office cafeterias. Built with React
 - **Frontend**: React 18.3.1
 - **UI Framework**: PatternFly 6.x (Enterprise-grade components)
 - **Backend**: Supabase (PostgreSQL + Auth + Storage)
-- **Deployment**: GitHub Pages / GitLab Pages / Vercel
+- **Deployment**: Vercel (recommended) / Netlify / GitHub Pages
 - **Build Tool**: Vite
 - **State Management**: React Context API
 
@@ -39,7 +39,7 @@ A modern, serverless meal booking system for office cafeterias. Built with React
 - Node.js 18 or higher
 - npm or yarn package manager
 - A Supabase account (free tier available)
-- A GitHub/GitLab account (for deployment, optional)
+- A Vercel account (for deployment, optional)
 
 ### 1. Clone the Repository
 
@@ -83,7 +83,9 @@ Visit `http://localhost:5173`
 
 ## 📦 Deployment Options
 
-### Option 1: Deploy to GitHub Pages
+### Option 1: Deploy to Vercel (Recommended) ⭐
+
+Vercel offers the best experience with zero configuration for client-side routing.
 
 #### 1. Push to GitHub
 
@@ -96,6 +98,46 @@ git remote add origin https://github.com/yourusername/meal-booking-system.git
 git push -u origin main
 ```
 
+#### 2. Import to Vercel
+
+1. Go to [vercel.com](https://vercel.com) and sign in with GitHub
+2. Click **"Add New..." → "Project"**
+3. Import your `meal-booking-system` repository
+4. Vercel will auto-detect it's a Vite project ✅
+
+#### 3. Configure Environment Variables
+
+In Vercel project settings (**Settings > Environment Variables**), add:
+
+- `VITE_SUPABASE_URL`: Your Supabase project URL
+- `VITE_SUPABASE_ANON_KEY`: Your Supabase anon key
+- `VITE_COMPANY_DOMAIN`: Your company email domain
+
+#### 4. Deploy
+
+Click **Deploy**! 🚀
+
+Your app will be available at: `https://meal-booking-system.vercel.app`
+
+**Benefits:**
+- ✅ Automatic deployments on every push to main
+- ✅ Preview deployments for pull requests
+- ✅ Perfect client-side routing support (no 404 issues)
+- ✅ Built-in CDN and SSL
+- ✅ Zero configuration needed
+
+---
+
+### Option 2: Deploy to GitHub Pages
+
+#### 1. Update Configuration
+
+You'll need to add back GitHub Pages specific configuration:
+
+1. Add `base: '/meal-booking-system/'` to `vite.config.js`
+2. Add `basename="/meal-booking-system"` to Router in `src/App.jsx`
+3. Create `public/404.html` for client-side routing support
+
 #### 2. Configure GitHub Secrets
 
 Go to your GitHub repository: **Settings > Secrets and variables > Actions**
@@ -106,52 +148,29 @@ Add the following secrets:
 - `VITE_SUPABASE_ANON_KEY`: Your Supabase anon key
 - `VITE_COMPANY_DOMAIN`: Your company email domain
 
-#### 3. Enable GitHub Pages
+#### 3. Create GitHub Actions Workflow
+
+Create `.github/workflows/deploy.yml` (or check DEPLOYMENT.md for details)
+
+#### 4. Enable GitHub Pages
 
 - Go to **Settings > Pages**
 - Source: GitHub Actions
 - Your app will be available at: `https://yourusername.github.io/meal-booking-system`
 
-### Option 2: Deploy to GitLab Pages
+---
 
-### 1. Push to GitLab
-
-```bash
-git remote add origin <your-gitlab-repo-url>
-git add .
-git commit -m "Initial commit"
-git push -u origin main
-```
-
-### 2. Configure GitLab CI/CD Variables
-
-Go to your GitLab project: **Settings > CI/CD > Variables**
-
-Add the following variables:
-
-- `VITE_SUPABASE_URL`: Your Supabase project URL
-- `VITE_SUPABASE_ANON_KEY`: Your Supabase anon key
-- `VITE_COMPANY_DOMAIN`: Your company email domain (e.g., `company.com`)
-
-### 3. Deploy
-
-The `.gitlab-ci.yml` file is already configured. Push to the `main` branch to trigger deployment:
-
-```bash
-git push origin main
-```
-
-Your app will be available at: `https://<username>.gitlab.io/<project-name>`
-
-### Option 3: Deploy to Vercel (Easiest)
+### Option 3: Deploy to Netlify
 
 1. Push your code to GitHub
-2. Go to [Vercel](https://vercel.com)
+2. Go to [netlify.com](https://netlify.com)
 3. Import your GitHub repository
-4. Add environment variables in Vercel dashboard
-5. Deploy! ✨
+4. Build command: `npm run build`
+5. Publish directory: `dist`
+6. Add environment variables in Netlify dashboard
+7. Deploy! ✨
 
-Vercel will automatically deploy on every push to main.
+Netlify will automatically deploy on every push to main.
 
 ## 📋 Database Schema
 
@@ -309,10 +328,10 @@ For issues and questions:
 **NEVER commit your `.env` file to version control!**
 
 The `.env` file is already in `.gitignore`. Always use:
-- Environment variables for secrets
-- GitHub Secrets for CI/CD
-- GitLab CI/CD Variables for GitLab
-- Vercel Environment Variables for Vercel
+- Environment variables for local development
+- Vercel Environment Variables for Vercel deployment
+- GitHub Secrets for GitHub Actions CI/CD
+- Netlify Environment Variables for Netlify
 
 ## 🔄 Updates & Maintenance
 

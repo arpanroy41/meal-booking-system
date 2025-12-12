@@ -2,10 +2,13 @@
 
 Quick guide to deploy your Meal Booking System to production.
 
-## GitHub Pages (Recommended for Simple Deployment)
+## Vercel (⭐ Recommended - Zero Configuration)
+
+Vercel is the easiest and most reliable option with perfect client-side routing support.
 
 ### Prerequisites
 - GitHub account
+- Vercel account (free tier available)
 - Supabase project set up
 
 ### Steps
@@ -20,6 +23,88 @@ Quick guide to deploy your Meal Booking System to production.
    git push -u origin main
    ```
 
+2. **Import to Vercel**
+   - Go to [vercel.com](https://vercel.com)
+   - Sign in with GitHub
+   - Click **"Add New..." → "Project"**
+   - Select your `meal-booking-system` repository
+   - Vercel will auto-detect it's a Vite project ✅
+
+3. **Add Environment Variables**
+   
+   In Vercel dashboard: `Settings > Environment Variables`
+   
+   Add these variables for **Production**, **Preview**, and **Development**:
+   - `VITE_SUPABASE_URL` → Your Supabase project URL
+   - `VITE_SUPABASE_ANON_KEY` → Your Supabase anon key
+   - `VITE_COMPANY_DOMAIN` → Your company domain (e.g., `company.com`)
+
+4. **Deploy**
+   
+   Click **Deploy**! 🚀
+   
+   Your app will be live at: `https://meal-booking-system.vercel.app`
+   
+   **Automatic Deployments:**
+   - Every push to `main` → Production deployment
+   - Every pull request → Preview deployment with unique URL
+
+### CLI Deployment (Alternative)
+
+```bash
+# Install Vercel CLI
+npm install -g vercel
+
+# Login
+vercel login
+
+# Deploy to production
+vercel --prod
+```
+
+---
+
+## GitHub Pages
+
+### Prerequisites
+- GitHub account
+- Supabase project set up
+
+### Configuration Changes Required
+
+**Important:** The current codebase is configured for Vercel. To deploy to GitHub Pages, you need to:
+
+1. **Update `vite.config.js`:**
+   ```javascript
+   export default defineConfig({
+     plugins: [react()],
+     base: '/meal-booking-system/', // Add this line
+     build: {
+       outDir: 'dist',
+       assetsDir: 'assets',
+       sourcemap: false,
+     },
+   })
+   ```
+
+2. **Update `src/App.jsx`:**
+   ```javascript
+   <Router basename="/meal-booking-system">
+   ```
+
+3. **Create `public/404.html`** for client-side routing support
+
+4. **Add redirect script to `index.html`** (see GitHub Pages SPA guide)
+
+### Steps
+
+1. **Push to GitHub**
+   ```bash
+   git add .
+   git commit -m "Configure for GitHub Pages"
+   git push origin main
+   ```
+
 2. **Configure GitHub Secrets**
    
    Go to: `Settings > Secrets and variables > Actions > New repository secret`
@@ -27,57 +112,28 @@ Quick guide to deploy your Meal Booking System to production.
    Add these secrets:
    - `VITE_SUPABASE_URL` → Your Supabase project URL
    - `VITE_SUPABASE_ANON_KEY` → Your Supabase anon key
-   - `VITE_COMPANY_DOMAIN` → Your company domain (optional)
+   - `VITE_COMPANY_DOMAIN` → Your company domain
 
-3. **Enable GitHub Pages**
+3. **Create GitHub Actions Workflow**
+   
+   Create `.github/workflows/deploy.yml` with build and deploy steps
+
+4. **Enable GitHub Pages**
    
    Go to: `Settings > Pages`
    - Source: `GitHub Actions`
    - Save
 
-4. **Deploy**
+5. **Deploy**
    
    Push to main branch:
    ```bash
    git push origin main
    ```
    
-   Check Actions tab for deployment progress.
-   
    Your app will be live at: `https://yourusername.github.io/meal-booking-system`
 
 ---
-
-## Vercel (Easiest - Recommended for Production)
-
-### Steps
-
-1. **Push to GitHub** (see above)
-
-2. **Import to Vercel**
-   - Go to [vercel.com](https://vercel.com)
-   - Click "New Project"
-   - Import your GitHub repository
-   - Vercel will auto-detect Vite
-
-3. **Add Environment Variables**
-   
-   In Vercel project settings:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-   - `VITE_COMPANY_DOMAIN`
-
-4. **Deploy**
-   
-   Click Deploy! 🚀
-   
-   Your app will be live at: `https://your-project.vercel.app`
-   
-   **Bonus:** Vercel auto-deploys on every push to main!
-
----
-
-## GitLab Pages
 
 ### Steps
 
@@ -188,18 +244,18 @@ All platforms provide real-time build logs for debugging.
 - Check CORS settings in Supabase
 
 ### 404 on Refresh
-- GitHub Pages: Handled by `404.html` (already configured)
-- Vercel: Add `vercel.json` with rewrites
-- Netlify: Add `_redirects` file
+- **Vercel:** Already handled by `vercel.json` ✅
+- **Netlify:** Add `netlify.toml` with rewrites
+- **GitHub Pages:** Requires `404.html` and redirect script
 
 ---
 
 ## 🎯 Recommended for Different Use Cases
 
-- **Quick prototype:** GitHub Pages
-- **Production app:** Vercel or Netlify
-- **Enterprise/self-hosted:** GitLab Pages or custom server
-- **Team with CI/CD needs:** Any platform works!
+- **Production app (best choice):** ⭐ **Vercel** - Zero config, perfect routing
+- **Quick prototype:** Netlify or GitHub Pages  
+- **Enterprise/self-hosted:** Custom server or Docker
+- **Team with existing GitLab:** GitLab Pages
 
 ---
 

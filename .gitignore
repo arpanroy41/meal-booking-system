@@ -34,7 +34,6 @@ dist-ssr
 
 # Build output
 build
-public
 
 # Testing
 coverage
