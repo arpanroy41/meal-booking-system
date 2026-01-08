@@ -1,17 +1,20 @@
-import { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-  Page,
-  PageSection,
-  Card,
-  CardBody,
+  LoginPage as PFLoginPage,
+  LoginForm,
+  LoginMainFooterBandItem,
+  LoginFooterItem,
+  ListItem,
+  ListVariant,
   Form,
   FormGroup,
   TextInput,
   Button,
   Alert,
-  Title,
+  AlertActionCloseButton,
 } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useAuth } from '../contexts/AuthContext';
 
 const SignUpPage = () => {
@@ -22,7 +25,6 @@ const SignUpPage = () => {
     password: '',
     confirmPassword: '',
     name: '',
-    employeeId: '',
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -74,7 +76,7 @@ const SignUpPage = () => {
     try {
       const { data, error } = await signUp(formData.email, formData.password, {
         name: formData.name,
-        employee_id: formData.employeeId,
+        employee_id: formData.email, // Use email as employee_id
       });
 
       if (error) {
@@ -94,104 +96,101 @@ const SignUpPage = () => {
   };
 
   return (
-    <Page>
-      <PageSection
-        variant="light"
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '100vh',
-        }}
+    <Fragment>
+      <PFLoginPage
+        footerListVariants={ListVariant.inline}
+        textContent="Join our workplace meal booking system. Create an account to start ordering delicious meals with ease."
+        loginTitle="Create your account"
+        loginSubtitle={`Enter your details to sign up. Email must be from ${companyDomain}`}
+        signUpForAccountMessage={
+          <LoginMainFooterBandItem>
+            Already have an account? <Link to="/login">Sign in.</Link>
+          </LoginMainFooterBandItem>
+        }
       >
-        <Card style={{ maxWidth: '500px', width: '100%' }}>
-          <CardBody>
-            <Title headingLevel="h1" size="2xl" style={{ marginBottom: '24px' }}>
-              Create Account
-            </Title>
+        {error && (
+          <Alert 
+            variant="danger" 
+            title={error} 
+            style={{ marginBottom: '16px' }}
+            actionClose={<AlertActionCloseButton onClose={() => setError('')} />}
+          />
+        )}
 
-            {error && (
-              <Alert variant="danger" title={error} style={{ marginBottom: '16px' }} />
-            )}
+        {success && (
+          <Alert 
+            variant="success" 
+            title={success} 
+            style={{ marginBottom: '16px' }}
+            actionClose={<AlertActionCloseButton onClose={() => setSuccess('')} />}
+          />
+        )}
 
-            {success && (
-              <Alert variant="success" title={success} style={{ marginBottom: '16px' }} />
-            )}
+        <Form onSubmit={handleSubmit}>
+          <FormGroup label="Full Name" isRequired fieldId="name">
+            <TextInput
+              isRequired
+              type="text"
+              id="name"
+              value={formData.name}
+              onChange={handleChange('name')}
+              placeholder="John Doe"
+            />
+          </FormGroup>
 
-            <Form onSubmit={handleSubmit}>
-              <FormGroup label="Full Name" isRequired fieldId="name">
-                <TextInput
-                  isRequired
-                  type="text"
-                  id="name"
-                  value={formData.name}
-                  onChange={handleChange('name')}
-                />
-              </FormGroup>
+          <FormGroup
+            label="Email"
+            isRequired
+            fieldId="email"
+            helperText={`Must be a valid ${companyDomain} email. This will be used as your Employee ID.`}
+          >
+            <TextInput
+              isRequired
+              type="email"
+              id="email"
+              value={formData.email}
+              onChange={handleChange('email')}
+              placeholder={`yourname@${companyDomain}`}
+            />
+          </FormGroup>
 
-              <FormGroup label="Employee ID" isRequired fieldId="employeeId">
-                <TextInput
-                  isRequired
-                  type="text"
-                  id="employeeId"
-                  value={formData.employeeId}
-                  onChange={handleChange('employeeId')}
-                />
-              </FormGroup>
+          <FormGroup 
+            label="Password" 
+            isRequired 
+            fieldId="password"
+            helperText="Must be at least 6 characters"
+          >
+            <TextInput
+              isRequired
+              type="password"
+              id="password"
+              value={formData.password}
+              onChange={handleChange('password')}
+            />
+          </FormGroup>
 
-              <FormGroup
-                label="Email"
-                isRequired
-                fieldId="email"
-                helperText={`Must be a valid ${companyDomain} email`}
-              >
-                <TextInput
-                  isRequired
-                  type="email"
-                  id="email"
-                  value={formData.email}
-                  onChange={handleChange('email')}
-                />
-              </FormGroup>
+          <FormGroup label="Confirm Password" isRequired fieldId="confirmPassword">
+            <TextInput
+              isRequired
+              type="password"
+              id="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange('confirmPassword')}
+            />
+          </FormGroup>
 
-              <FormGroup label="Password" isRequired fieldId="password">
-                <TextInput
-                  isRequired
-                  type="password"
-                  id="password"
-                  value={formData.password}
-                  onChange={handleChange('password')}
-                />
-              </FormGroup>
-
-              <FormGroup label="Confirm Password" isRequired fieldId="confirmPassword">
-                <TextInput
-                  isRequired
-                  type="password"
-                  id="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange('confirmPassword')}
-                />
-              </FormGroup>
-
-              <Button
-                variant="primary"
-                type="submit"
-                isBlock
-                isDisabled={isLoading}
-                style={{ marginTop: '16px' }}
-              >
-                {isLoading ? 'Creating account...' : 'Sign Up'}
-              </Button>
-
-              <div style={{ marginTop: '16px', textAlign: 'center' }}>
-                Already have an account? <Link to="/login">Sign in</Link>
-              </div>
-            </Form>
-          </CardBody>
-        </Card>
-      </PageSection>
-    </Page>
+          <Button
+            variant="primary"
+            type="submit"
+            isBlock
+            isDisabled={isLoading}
+            style={{ marginTop: '16px' }}
+          >
+            {isLoading ? 'Creating account...' : 'Sign Up'}
+          </Button>
+        </Form>
+      </PFLoginPage>
+    </Fragment>
   );
 };
 

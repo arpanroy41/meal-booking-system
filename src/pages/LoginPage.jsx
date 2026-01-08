@@ -7,9 +7,21 @@ import {
   LoginFooterItem,
   ListItem,
   ListVariant,
+  Modal,
+  ModalVariant,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Form,
+  FormGroup,
+  TextInput,
+  Alert,
+  AlertActionCloseButton,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../services/supabase';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -21,6 +33,13 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRememberMeChecked, setIsRememberMeChecked] = useState(false);
+  
+  // Forgot password modal states
+  const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetEmailError, setResetEmailError] = useState('');
+  const [resetEmailSuccess, setResetEmailSuccess] = useState('');
+  const [isResetLoading, setIsResetLoading] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
@@ -82,6 +101,53 @@ const LoginPage = () => {
     }
   };
 
+  const handleForgotPasswordClick = (e) => {
+    e.preventDefault();
+    setIsForgotPasswordModalOpen(true);
+    setResetEmail('');
+    setResetEmailError('');
+    setResetEmailSuccess('');
+  };
+
+  const handleResetPasswordSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!resetEmail || !resetEmail.includes('@')) {
+      setResetEmailError('Please enter a valid email address.');
+      return;
+    }
+
+    setResetEmailError('');
+    setResetEmailSuccess('');
+    setIsResetLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        setResetEmailError(error.message);
+        setIsResetLoading(false);
+        return;
+      }
+
+      setResetEmailSuccess(
+        'Password reset link has been sent to your email. Please check your inbox and follow the instructions.'
+      );
+      setIsResetLoading(false);
+      
+      // Close modal after 3 seconds
+      setTimeout(() => {
+        setIsForgotPasswordModalOpen(false);
+      }, 3000);
+    } catch (err) {
+      console.error('Password reset error:', err);
+      setResetEmailError('An unexpected error occurred. Please try again.');
+      setIsResetLoading(false);
+    }
+  };
+
   const signUpForAccountMessage = (
     <LoginMainFooterBandItem>
       Need an account? <Link to="/signup">Sign up.</Link>
@@ -90,7 +156,9 @@ const LoginPage = () => {
 
   const forgotCredentials = (
     <LoginMainFooterBandItem>
-      <a href="#forgot-password">Forgot username or password?</a>
+      <a href="#forgot-password" onClick={handleForgotPasswordClick}>
+        Forgot username or password?
+      </a>
     </LoginMainFooterBandItem>
   );
 
@@ -122,7 +190,7 @@ const LoginPage = () => {
       isShowPasswordEnabled
       onChangePassword={handlePasswordChange}
       isValidPassword={isValidPassword}
-      rememberMeLabel="Keep me logged in for 30 days."
+      // rememberMeLabel="Keep me logged in for 30 days."
       isRememberMeChecked={isRememberMeChecked}
       onChangeRememberMe={onRememberMeClick}
       onLoginButtonClick={handleSubmit}
@@ -132,19 +200,92 @@ const LoginPage = () => {
   );
 
   return (
-    <PFLoginPage
-      footerListVariants={ListVariant.inline}
-      brandImgSrc="🍽️"
-      brandImgAlt="Meal Booking System"
-      footerListItems={listItem}
-      textContent="Streamline your workplace meal bookings with our easy-to-use system. Book meals in advance, track your orders, and manage your preferences all in one place."
-      loginTitle="Log in to your account"
-      loginSubtitle="Enter your email and password to access the meal booking system."
-      signUpForAccountMessage={signUpForAccountMessage}
-      forgotCredentials={forgotCredentials}
-    >
-      {loginForm}
-    </PFLoginPage>
+    <Fragment>
+      <PFLoginPage
+        footerListVariants={ListVariant.inline}
+        // brandImgSrc=""
+        // brandImgAlt="Meal Booking System"
+        // footerListItems={listItem}
+        textContent="Streamline your workplace meal bookings with our easy-to-use system. Book meals in advance, track your orders, and manage your preferences all in one place."
+        loginTitle="Log in to your account"
+        loginSubtitle="Enter your email and password to access the meal booking system."
+        signUpForAccountMessage={signUpForAccountMessage}
+        forgotCredentials={forgotCredentials}
+      >
+        {loginForm}
+      </PFLoginPage>
+
+      {/* Forgot Password Modal */}
+      <Modal
+        variant={ModalVariant.small}
+        isOpen={isForgotPasswordModalOpen}
+        onClose={() => setIsForgotPasswordModalOpen(false)}
+        aria-labelledby="forgot-password-modal-title"
+        aria-describedby="forgot-password-modal-body"
+      >
+        <ModalHeader 
+          title="Reset Password" 
+          labelId="forgot-password-modal-title" 
+        />
+        <ModalBody id="forgot-password-modal-body">
+          {resetEmailError && (
+            <Alert 
+              variant="danger" 
+              title={resetEmailError} 
+              style={{ marginBottom: '16px' }}
+              isInline
+              actionClose={<AlertActionCloseButton onClose={() => setResetEmailError('')} />}
+            />
+          )}
+
+          {resetEmailSuccess && (
+            <Alert 
+              variant="success" 
+              title={resetEmailSuccess} 
+              style={{ marginBottom: '16px' }}
+              isInline
+            />
+          )}
+
+          <Form onSubmit={handleResetPasswordSubmit}>
+            <FormGroup 
+              label="Email Address" 
+              isRequired 
+              fieldId="reset-email"
+              helperText="Enter your email address and we'll send you a link to reset your password."
+            >
+              <TextInput
+                id="reset-email"
+                type="email"
+                value={resetEmail}
+                onChange={(e, value) => setResetEmail(value)}
+                isRequired
+                placeholder="your.email@example.com"
+                isDisabled={isResetLoading || !!resetEmailSuccess}
+              />
+            </FormGroup>
+          </Form>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            key="submit"
+            variant="primary"
+            onClick={handleResetPasswordSubmit}
+            isLoading={isResetLoading}
+            isDisabled={isResetLoading || !!resetEmailSuccess}
+          >
+            Send Reset Link
+          </Button>
+          <Button
+            key="cancel"
+            variant="link"
+            onClick={() => setIsForgotPasswordModalOpen(false)}
+          >
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+    </Fragment>
   );
 };
 

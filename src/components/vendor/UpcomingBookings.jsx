@@ -12,6 +12,7 @@ import {
   EmptyStateBody,
   Button,
   Alert,
+  AlertActionCloseButton,
   Radio,
 } from '@patternfly/react-core';
 import {
@@ -356,7 +357,13 @@ const UpcomingBookings = () => {
                 </div>
 
                 {dateRangeError && (
-                  <Alert variant="danger" title={dateRangeError} style={{ marginBottom: '12px' }} isInline />
+                  <Alert 
+                    variant="danger" 
+                    title={dateRangeError} 
+                    style={{ marginBottom: '12px' }} 
+                    isInline
+                    actionClose={<AlertActionCloseButton onClose={() => setDateRangeError('')} />}
+                  />
                 )}
 
                 {viewMode === 'single' ? (

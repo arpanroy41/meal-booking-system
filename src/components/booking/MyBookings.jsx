@@ -15,6 +15,7 @@ import {
   EmptyState,
   EmptyStateBody,
   Alert,
+  AlertActionCloseButton,
   Form,
   FormGroup,
   Radio,
@@ -421,7 +422,8 @@ const MyBookings = () => {
                   variant="danger" 
                   title={editError} 
                   style={{ marginBottom: '16px' }} 
-                  isInline 
+                  isInline
+                  actionClose={<AlertActionCloseButton onClose={() => setEditError('')} />}
                 />
               )}
 

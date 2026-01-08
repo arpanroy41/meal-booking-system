@@ -10,6 +10,7 @@ import {
   DatePicker,
   Button,
   Alert,
+  AlertActionCloseButton,
   FileUpload,
 } from '@patternfly/react-core';
 import { useAuth } from '../../contexts/AuthContext';
@@ -266,11 +267,21 @@ const BookingForm = () => {
           )}
 
           {error && (
-            <Alert variant="danger" title={error} style={{ marginBottom: '16px' }} />
+            <Alert 
+              variant="danger" 
+              title={error} 
+              style={{ marginBottom: '16px' }}
+              actionClose={<AlertActionCloseButton onClose={() => setError('')} />}
+            />
           )}
 
           {success && (
-            <Alert variant="success" title={success} style={{ marginBottom: '16px' }} />
+            <Alert 
+              variant="success" 
+              title={success} 
+              style={{ marginBottom: '16px' }}
+              actionClose={<AlertActionCloseButton onClose={() => setSuccess('')} />}
+            />
           )}
 
           <Form onSubmit={handleSubmit}>

@@ -7,6 +7,7 @@ import {
   DatePicker,
   Button,
   Alert,
+  AlertActionCloseButton,
   Form,
   FormGroup,
   Checkbox,
@@ -256,11 +257,23 @@ const DateManagement = () => {
           </p>
 
           {error && (
-            <Alert variant="danger" title={error} style={{ marginBottom: '16px' }} isInline />
+            <Alert 
+              variant="danger" 
+              title={error} 
+              style={{ marginBottom: '16px' }} 
+              isInline
+              actionClose={<AlertActionCloseButton onClose={() => setError('')} />}
+            />
           )}
 
           {success && (
-            <Alert variant="success" title={success} style={{ marginBottom: '16px' }} isInline />
+            <Alert 
+              variant="success" 
+              title={success} 
+              style={{ marginBottom: '16px' }} 
+              isInline
+              actionClose={<AlertActionCloseButton onClose={() => setSuccess('')} />}
+            />
           )}
 
           <div style={{ marginBottom: '16px', maxWidth: '300px', position: 'relative', zIndex: 1 }}>
