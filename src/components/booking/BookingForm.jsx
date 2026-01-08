@@ -31,8 +31,50 @@ const BookingForm = () => {
   const [success, setSuccess] = useState('');
   const [availableDates, setAvailableDates] = useState([]);
   const [selectedDateConfig, setSelectedDateConfig] = useState(null);
+  const [paymentQRUrl, setPaymentQRUrl] = useState(null);
+  const [qrLoading, setQrLoading] = useState(true);
 
   const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd');
+
+  // Fetch payment QR code from Supabase Storage
+  useEffect(() => {
+    fetchPaymentQR();
+    
+    // Cleanup: revoke the blob URL when component unmounts
+    return () => {
+      if (paymentQRUrl && paymentQRUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(paymentQRUrl);
+      }
+    };
+  }, []);
+
+  const fetchPaymentQR = async () => {
+    try {
+      setQrLoading(true);
+      
+      // Download the QR code file (requires authentication)
+      const { data, error } = await supabase.storage
+        .from('payment-qr')
+        .download('qr-code.png');
+
+      if (error) {
+        console.error('Error downloading payment QR:', error);
+        setPaymentQRUrl(null);
+        return;
+      }
+
+      // Convert blob to object URL
+      if (data) {
+        const url = URL.createObjectURL(data);
+        setPaymentQRUrl(url);
+      }
+    } catch (err) {
+      console.error('Error fetching payment QR:', err);
+      setPaymentQRUrl(null);
+    } finally {
+      setQrLoading(false);
+    }
+  };
 
   // Fetch available dates
   useEffect(() => {
@@ -350,12 +392,45 @@ const BookingForm = () => {
                   borderRadius: '4px',
                   backgroundColor: '#f0f0f0'
                 }}>
-                  <p style={{ marginBottom: '8px', fontWeight: 'bold' }}>
-                    Please complete payment before submitting booking
+                  <p style={{ marginBottom: '12px', fontWeight: 'bold' }}>
+                    Scan QR code to make payment
                   </p>
-                  <p style={{ fontSize: '14px', color: '#666' }}>
-                    Note: Admin needs to add UPI QR code here. 
-                    For now, upload any payment screenshot to proceed.
+                  
+                  {qrLoading ? (
+                    <div style={{ textAlign: 'center', padding: '20px' }}>
+                      <p style={{ fontSize: '14px', color: '#666' }}>Loading payment QR code...</p>
+                    </div>
+                  ) : paymentQRUrl ? (
+                    <div style={{ textAlign: 'center', marginBottom: '12px' }}>
+                      <img 
+                        src={paymentQRUrl} 
+                        alt="Payment QR Code" 
+                        style={{ 
+                          maxWidth: '250px', 
+                          maxHeight: '250px',
+                          border: '2px solid #0066cc',
+                          borderRadius: '8px',
+                          padding: '8px',
+                          backgroundColor: '#fff'
+                        }} 
+                      />
+                      <p style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>
+                        Scan this QR code with your UPI app
+                      </p>
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '12px', backgroundColor: '#fff5e6', borderRadius: '4px' }}>
+                      <p style={{ fontSize: '14px', color: '#e67300', marginBottom: '4px' }}>
+                        ⚠️ Payment QR code not available
+                      </p>
+                      <p style={{ fontSize: '12px', color: '#666' }}>
+                        Please contact admin to set up payment QR code
+                      </p>
+                    </div>
+                  )}
+                  
+                  <p style={{ fontSize: '14px', color: '#666', marginTop: '12px' }}>
+                    After payment, upload the payment screenshot below to complete your booking.
                   </p>
                 </div>
               )}

@@ -47,6 +47,10 @@ const MyBookings = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editError, setEditError] = useState('');
   const [availableDates, setAvailableDates] = useState([]);
+  
+  // Screenshot display states
+  const [screenshotBlobUrl, setScreenshotBlobUrl] = useState(null);
+  const [screenshotLoading, setScreenshotLoading] = useState(false);
 
   useEffect(() => {
     fetchBookings();
@@ -183,7 +187,7 @@ const MyBookings = () => {
     );
   };
 
-  const handleViewDetails = (booking) => {
+  const handleViewDetails = async (booking) => {
     setSelectedBooking(booking);
     setIsEditMode(false);
     setEditMealType(booking.meal_type);
@@ -193,6 +197,65 @@ const MyBookings = () => {
     setEditPaymentFileValue('');
     setEditError('');
     setIsModalOpen(true);
+    
+    // Download payment screenshot if it exists
+    if (booking.payment_screenshot_url) {
+      await downloadPaymentScreenshot(booking.payment_screenshot_url);
+    }
+  };
+
+  const downloadPaymentScreenshot = async (screenshotUrl) => {
+    try {
+      setScreenshotLoading(true);
+      
+      // Extract the file path from the URL
+      const urlParts = screenshotUrl.split('/storage/v1/object/public/bookings/');
+      if (urlParts.length < 2) {
+        console.error('Invalid screenshot URL format');
+        setScreenshotBlobUrl(null);
+        return;
+      }
+      
+      const filePath = urlParts[1];
+      
+      // Download the file from private bucket
+      const { data, error } = await supabase.storage
+        .from('bookings')
+        .download(filePath);
+
+      if (error) {
+        console.error('Error downloading screenshot:', error);
+        setScreenshotBlobUrl(null);
+        return;
+      }
+
+      // Create blob URL
+      if (data) {
+        // Revoke previous blob URL if exists
+        if (screenshotBlobUrl) {
+          URL.revokeObjectURL(screenshotBlobUrl);
+        }
+        
+        const url = URL.createObjectURL(data);
+        setScreenshotBlobUrl(url);
+      }
+    } catch (err) {
+      console.error('Error fetching screenshot:', err);
+      setScreenshotBlobUrl(null);
+    } finally {
+      setScreenshotLoading(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    // Cleanup blob URL
+    if (screenshotBlobUrl) {
+      URL.revokeObjectURL(screenshotBlobUrl);
+      setScreenshotBlobUrl(null);
+    }
+    setIsModalOpen(false);
+    setSelectedBooking(null);
+    setIsEditMode(false);
   };
 
   const handleEditClick = () => {
@@ -403,10 +466,7 @@ const MyBookings = () => {
       <Modal
         variant={ModalVariant.medium}
         isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setIsEditMode(false);
-        }}
+        onClose={handleCloseModal}
         aria-labelledby="booking-details-modal-title"
         aria-describedby="booking-details-modal-body"
       >
@@ -513,11 +573,24 @@ const MyBookings = () => {
                             <p>Payment has been approved. Screenshot cannot be changed.</p>
                           </Alert>
                           {selectedBooking.payment_screenshot_url && (
-                            <img
-                              src={selectedBooking.payment_screenshot_url}
-                              alt="Approved payment screenshot"
-                              style={{ maxWidth: '100%', maxHeight: '200px', border: '1px solid #d2d2d2' }}
-                            />
+                            screenshotLoading ? (
+                              <div style={{ textAlign: 'center', padding: '20px' }}>
+                                <Spinner size="md" />
+                                <p style={{ marginTop: '8px', color: '#666', fontSize: '14px' }}>Loading screenshot...</p>
+                              </div>
+                            ) : screenshotBlobUrl ? (
+                              <img
+                                src={screenshotBlobUrl}
+                                alt="Approved payment screenshot"
+                                style={{ maxWidth: '100%', maxHeight: '200px', border: '1px solid #d2d2d2' }}
+                              />
+                            ) : (
+                              <Alert 
+                                variant="warning" 
+                                title="Unable to load screenshot" 
+                                isInline
+                              />
+                            )
                           )}
                         </FormGroup>
                       ) : (
@@ -549,11 +622,24 @@ const MyBookings = () => {
 
                           {selectedBooking.payment_screenshot_url && (
                             <FormGroup label="Current Payment Screenshot" fieldId="current-screenshot">
-                              <img
-                                src={selectedBooking.payment_screenshot_url}
-                                alt="Current payment screenshot"
-                                style={{ maxWidth: '100%', maxHeight: '200px', border: '1px solid #d2d2d2' }}
-                              />
+                              {screenshotLoading ? (
+                                <div style={{ textAlign: 'center', padding: '20px' }}>
+                                  <Spinner size="md" />
+                                  <p style={{ marginTop: '8px', color: '#666', fontSize: '14px' }}>Loading screenshot...</p>
+                                </div>
+                              ) : screenshotBlobUrl ? (
+                                <img
+                                  src={screenshotBlobUrl}
+                                  alt="Current payment screenshot"
+                                  style={{ maxWidth: '100%', maxHeight: '200px', border: '1px solid #d2d2d2' }}
+                                />
+                              ) : (
+                                <Alert 
+                                  variant="warning" 
+                                  title="Unable to load screenshot" 
+                                  isInline
+                                />
+                              )}
                             </FormGroup>
                           )}
                         </>
@@ -574,11 +660,24 @@ const MyBookings = () => {
                     <div style={{ marginTop: '16px' }}>
                       <strong>Payment Screenshot:</strong>
                       <div style={{ marginTop: '8px' }}>
-                        <img
-                          src={selectedBooking.payment_screenshot_url}
-                          alt="Payment screenshot"
-                          style={{ maxWidth: '100%', maxHeight: '300px', border: '1px solid #d2d2d2' }}
-                        />
+                        {screenshotLoading ? (
+                          <div style={{ textAlign: 'center', padding: '20px' }}>
+                            <Spinner size="lg" />
+                            <p style={{ marginTop: '8px', color: '#666' }}>Loading screenshot...</p>
+                          </div>
+                        ) : screenshotBlobUrl ? (
+                          <img
+                            src={screenshotBlobUrl}
+                            alt="Payment screenshot"
+                            style={{ maxWidth: '100%', maxHeight: '300px', border: '1px solid #d2d2d2' }}
+                          />
+                        ) : (
+                          <Alert 
+                            variant="warning" 
+                            title="Unable to load payment screenshot" 
+                            isInline
+                          />
+                        )}
                       </div>
                     </div>
                   )}
@@ -614,6 +713,7 @@ const MyBookings = () => {
                 Close
               </Button>
               {selectedBooking && 
+               canEditBooking(selectedBooking.booking_date) &&
                selectedBooking.payment_status !== BOOKING_STATUS.SERVED &&
                selectedBooking.payment_status !== BOOKING_STATUS.REJECTED && (
                 <Button

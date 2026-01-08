@@ -47,6 +47,8 @@ const ApprovalManagement = () => {
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [recentSelectedRowIndex, setRecentSelectedRowIndex] = useState(null);
   const [shifting, setShifting] = useState(false);
+  const [screenshotBlobUrl, setScreenshotBlobUrl] = useState(null);
+  const [screenshotLoading, setScreenshotLoading] = useState(false);
 
   useEffect(() => {
     fetchPendingBookings();
@@ -96,9 +98,68 @@ const ApprovalManagement = () => {
     }
   };
 
-  const handleViewDetails = (booking) => {
+  const handleCloseModal = () => {
+    // Cleanup blob URL
+    if (screenshotBlobUrl) {
+      URL.revokeObjectURL(screenshotBlobUrl);
+      setScreenshotBlobUrl(null);
+    }
+    setIsModalOpen(false);
+    setSelectedBooking(null);
+  };
+
+  const handleViewDetails = async (booking) => {
     setSelectedBooking(booking);
     setIsModalOpen(true);
+    
+    // Download payment screenshot if it exists
+    if (booking.payment_screenshot_url) {
+      await downloadPaymentScreenshot(booking.payment_screenshot_url);
+    }
+  };
+
+  const downloadPaymentScreenshot = async (screenshotUrl) => {
+    try {
+      setScreenshotLoading(true);
+      
+      // Extract the file path from the URL
+      // URL format: https://xxx.supabase.co/storage/v1/object/public/bookings/payment-screenshots/xxx.png
+      const urlParts = screenshotUrl.split('/storage/v1/object/public/bookings/');
+      if (urlParts.length < 2) {
+        console.error('Invalid screenshot URL format');
+        setScreenshotBlobUrl(null);
+        return;
+      }
+      
+      const filePath = urlParts[1]; // e.g., "payment-screenshots/xxx.png"
+      
+      // Download the file from private bucket
+      const { data, error } = await supabase.storage
+        .from('bookings')
+        .download(filePath);
+
+      if (error) {
+        console.error('Error downloading screenshot:', error);
+        setScreenshotBlobUrl(null);
+        return;
+      }
+
+      // Create blob URL
+      if (data) {
+        // Revoke previous blob URL if exists
+        if (screenshotBlobUrl) {
+          URL.revokeObjectURL(screenshotBlobUrl);
+        }
+        
+        const url = URL.createObjectURL(data);
+        setScreenshotBlobUrl(url);
+      }
+    } catch (err) {
+      console.error('Error fetching screenshot:', err);
+      setScreenshotBlobUrl(null);
+    } finally {
+      setScreenshotLoading(false);
+    }
   };
 
   // Check if date is in the past
@@ -456,7 +517,7 @@ const ApprovalManagement = () => {
       <Modal
         variant={ModalVariant.medium}
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleCloseModal}
         aria-labelledby="review-booking-modal-title"
         aria-describedby="review-booking-modal-body"
       >
@@ -479,16 +540,32 @@ const ApprovalManagement = () => {
                 <div style={{ marginTop: '16px' }}>
                   <strong>Payment Screenshot:</strong>
                   <div style={{ marginTop: '8px' }}>
-                    <img
-                      src={selectedBooking.payment_screenshot_url}
-                      alt="Payment screenshot"
-                      style={{ 
-                        maxWidth: '100%', 
-                        maxHeight: '400px', 
-                        border: '1px solid #d2d2d2',
-                        borderRadius: '4px'
-                      }}
-                    />
+                    {screenshotLoading ? (
+                      <div style={{ textAlign: 'center', padding: '20px' }}>
+                        <Spinner size="lg" />
+                        <p style={{ marginTop: '8px', color: '#666' }}>Loading screenshot...</p>
+                      </div>
+                    ) : screenshotBlobUrl ? (
+                      <img
+                        src={screenshotBlobUrl}
+                        alt="Payment screenshot"
+                        style={{ 
+                          maxWidth: '100%', 
+                          maxHeight: '400px', 
+                          border: '1px solid #d2d2d2',
+                          borderRadius: '4px'
+                        }}
+                      />
+                    ) : (
+                      <Alert 
+                        variant="warning" 
+                        title="Unable to load payment screenshot" 
+                        isInline
+                        style={{ marginTop: '8px' }}
+                      >
+                        The payment screenshot could not be loaded. Please check if the file exists in storage.
+                      </Alert>
+                    )}
                   </div>
                 </div>
               )}
