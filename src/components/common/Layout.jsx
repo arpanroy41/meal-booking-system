@@ -19,9 +19,11 @@ import {
   Nav,
   NavList,
   NavItem,
-  Avatar,
   Brand,
+  FlexItem,
+  Flex,
 } from '@patternfly/react-core';
+import { UserIcon } from '@patternfly/react-icons';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -66,23 +68,22 @@ const Layout = ({ children, navItems = [] }) => {
                 ref={toggleRef}
                 onClick={onDropdownToggle}
                 isExpanded={isDropdownOpen}
-                icon={<Avatar src={null} alt={profile?.name || 'User'} size="sm" />}
+                icon={<UserIcon />}
               >
                 {profile?.name || 'User'}
               </MenuToggle>
               )}
             >
               <DropdownList>
-                <DropdownItem key="profile" isDisabled>
-                  <div>
-                    <div><strong>{profile?.name}</strong></div>
-                    <div style={{ fontSize: '0.9rem', color: '#6a6e73' }}>
-                      {profile?.email}
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: '#6a6e73' }}>
-                      Role: {profile?.role?.toUpperCase()}
-                    </div>
-                  </div>
+                <DropdownItem key="profile">
+                  <Flex direction={{ default: 'column' }}>
+                    <FlexItem>
+                        Email: {profile?.email}
+                    </FlexItem>
+                    <FlexItem>                                            
+                        Role: {profile?.role?.toUpperCase()}                      
+                    </FlexItem>                    
+                  </Flex>
                 </DropdownItem>
                 <DropdownItem key="signout" onClick={handleSignOut}>
                   Sign out
@@ -101,8 +102,8 @@ const Layout = ({ children, navItems = [] }) => {
         <MastheadToggle>
           <PageToggleButton isHamburgerButton aria-label="Global navigation" style={{ fontSize: "large" }}/>
         </MastheadToggle>
-        <MastheadBrand style={{ alignItems: 'center' }}>
-          Meal Booking System
+        <MastheadBrand style={{ alignItems: 'center', fontSize: '1rem' }}>
+          <strong>Meal Booking System</strong>
         </MastheadBrand>
       </MastheadMain>
       <MastheadContent>{headerToolbar}</MastheadContent>

@@ -13,6 +13,8 @@ import {
 import { SyncAltIcon } from '@patternfly/react-icons';
 import { supabase, TABLES, BOOKING_STATUS, MEAL_TYPES } from '../../services/supabase';
 import { format } from 'date-fns';
+import vegIcon from '../../assets/veg.png';
+import nonVegIcon from '../../assets/non_veg.png';
 
 const DailySummary = () => {  
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -90,12 +92,13 @@ const DailySummary = () => {
     }
   };
 
-  const StatCard = ({ title, value, color = '#0066cc' }) => (
+  const StatCard = ({ title, value, color = '#0066cc', icon = null }) => (
     <Card>
       <CardBody>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '0.9rem', color: '#6a6e73', marginBottom: '8px' }}>
-            {title}
+          <div style={{ fontSize: '0.9rem', color: '#6a6e73', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            {icon && <img src={icon} alt={title} style={{ width: '14px', height: '14px' }} />}
+            <span>{title}</span>
           </div>
           <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color }}>
             {value}
@@ -154,10 +157,10 @@ const DailySummary = () => {
             <StatCard title="Pending" value={summary.pendingBookings} color="#f0ab00" />
           </GridItem>
           <GridItem span={6} md={6}>
-            <StatCard title="🥗 Vegetarian" value={summary.vegCount} color="#3e8635" />
+            <StatCard title="Veg" value={summary.vegCount} color="#3e8635" icon={vegIcon} />
           </GridItem>
           <GridItem span={6} md={6}>
-            <StatCard title="🍗 Non-Vegetarian" value={summary.nonVegCount} color="#c9190b" />
+            <StatCard title="Non-Veg" value={summary.nonVegCount} color="#c9190b" icon={nonVegIcon} />
           </GridItem>
         </Grid>
       )}

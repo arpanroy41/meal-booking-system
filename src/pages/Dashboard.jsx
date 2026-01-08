@@ -5,7 +5,7 @@ import {
   UsersIcon,
   CalendarAltIcon, 
   ListIcon,
-  PrintIcon 
+  CalendarCheckIcon
 } from '@patternfly/react-icons';
 import { useAuth } from '../contexts/AuthContext';
 import Layout from '../components/common/Layout';
@@ -14,13 +14,13 @@ import Layout from '../components/common/Layout';
 import ApprovalManagement from '../components/admin/ApprovalManagement';
 import DailySummary from '../components/admin/DailySummary';
 import UserManagement from '../components/admin/UserManagement';
+import DateManagement from '../components/admin/DateManagement';
 
 // Employee components
 import BookingForm from '../components/booking/BookingForm';
 import MyBookings from '../components/booking/MyBookings';
 
 // Vendor components
-import TodaysBookings from '../components/vendor/TodaysBookings';
 import UpcomingBookings from '../components/vendor/UpcomingBookings';
 
 const Dashboard = () => {
@@ -41,22 +41,37 @@ const Dashboard = () => {
           icon: <ChartLineIcon />,
         },
         {
+          path: '/dashboard/dates',
+          label: 'Date Management',
+          icon: <CalendarCheckIcon />,
+        },
+        {
           path: '/dashboard/users',
           label: 'User Management',
           icon: <UsersIcon />,
+        },
+        {
+          path: '/dashboard/bookings',
+          label: 'All Bookings',
+          icon: <ListIcon />,
+        },
+        {
+          path: '/dashboard/book',
+          label: 'Book My Meal',
+          icon: <CalendarAltIcon />,
+        },
+        {
+          path: '/dashboard/my-bookings',
+          label: 'My Bookings',
+          icon: <ListIcon />,
         },
       ];
     } else if (isVendor) {
       return [
         {
-          path: '/dashboard/today',
-          label: "Today's Bookings",
+          path: '/dashboard/bookings',
+          label: 'All Bookings',
           icon: <ListIcon />,
-        },
-        {
-          path: '/dashboard/upcoming',
-          label: 'Upcoming Bookings',
-          icon: <PrintIcon />,
         },
       ];
     } else {
@@ -81,7 +96,7 @@ const Dashboard = () => {
     if (isAdmin) {
       return <Navigate to="/dashboard/approvals" replace />;
     } else if (isVendor) {
-      return <Navigate to="/dashboard/today" replace />;
+      return <Navigate to="/dashboard/bookings" replace />;
     } else {
       return <Navigate to="/dashboard/book" replace />;
     }
@@ -97,15 +112,18 @@ const Dashboard = () => {
           <>
             <Route path="/approvals" element={<ApprovalManagement />} />
             <Route path="/summary" element={<DailySummary />} />
+            <Route path="/dates" element={<DateManagement />} />
             <Route path="/users" element={<UserManagement />} />
+            <Route path="/bookings" element={<UpcomingBookings />} />
+            <Route path="/book" element={<BookingForm />} />
+            <Route path="/my-bookings" element={<MyBookings />} />
           </>
         )}
 
         {/* Vendor routes */}
         {isVendor && (
           <>
-            <Route path="/today" element={<TodaysBookings />} />
-            <Route path="/upcoming" element={<UpcomingBookings />} />
+            <Route path="/bookings" element={<UpcomingBookings />} />
           </>
         )}
 

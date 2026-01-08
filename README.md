@@ -6,7 +6,7 @@ A modern, serverless meal booking system for office cafeterias. Built with React
 
 ### For Employees
 - 📅 Book meals one day in advance
-- 🥗 Choose between Vegetarian and Non-Vegetarian options
+- 🥗 Choose between Veg and Non-Veg options
 - 💳 Pay via UPI QR code and upload payment proof
 - 📱 View booking history and receipt numbers
 - ❌ Cancel pending bookings

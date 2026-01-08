@@ -14,6 +14,7 @@ export const TABLES = {
   EMPLOYEES: 'employees',
   BOOKINGS: 'bookings',
   SETTINGS: 'settings',
+  AVAILABLE_DATES: 'available_dates',
 };
 
 // User roles

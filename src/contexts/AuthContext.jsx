@@ -102,6 +102,14 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    // Set a safety timeout to prevent infinite loading
+    const safetyTimeout = setTimeout(() => {
+      if (loading) {
+        console.warn('Auth loading timeout - forcing loading to false');
+        setLoading(false);
+      }
+    }, 10000); // 10 second timeout
+
     // Check active sessions and sets the user
     supabase.auth.getSession().then(({ data: { session } }) => {      
       setUser(session?.user ?? null);
@@ -111,6 +119,9 @@ export const AuthProvider = ({ children }) => {
       } else {
         setLoading(false);
       }
+    }).catch((error) => {
+      console.error('Error getting session:', error);
+      setLoading(false);
     });
 
     // Listen for changes on auth state
@@ -124,11 +135,17 @@ export const AuthProvider = ({ children }) => {
           if (!initialSessionHandled.current) {
             initialSessionHandled.current = true;
           }
+          // Ensure loading is false
+          if (loading && !session?.user) {
+            setLoading(false);
+          }
           return;
         } else if (event === 'SIGNED_IN') {
           // Fetch profile on login
-          setLoading(true);
-          if (session?.user) {            
+          // Only set loading if we don't already have this user's profile
+          const alreadyFetched = fetchedUserIdRef.current === session?.user?.id;
+          if (!alreadyFetched && session?.user) {
+            setLoading(true);
             await fetchProfile(session.user.id, session.user);
           }
         } else if (event === 'USER_UPDATED') {
@@ -139,6 +156,11 @@ export const AuthProvider = ({ children }) => {
         } else if (event === 'TOKEN_REFRESHED') {
           // JWT expired and was refreshed automatically - just update user, no need to refetch profile
           // User stays logged in seamlessly
+          console.log('Token refreshed successfully');
+          // Ensure loading is false after token refresh
+          if (loading) {
+            setLoading(false);
+          }
         } else if (event === 'SIGNED_OUT') {
           setProfile(null);
           setLoading(false);
@@ -149,7 +171,10 @@ export const AuthProvider = ({ children }) => {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(safetyTimeout);
+      subscription.unsubscribe();
+    };
   }, [fetchProfile]);
 
   const signIn = async (email, password) => {

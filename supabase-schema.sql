@@ -37,11 +37,24 @@ CREATE TABLE IF NOT EXISTS settings (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
+-- Create available_dates table (for admin to control bookable dates)
+CREATE TABLE IF NOT EXISTS available_dates (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    date DATE UNIQUE NOT NULL,
+    is_available BOOLEAN NOT NULL DEFAULT true,
+    is_free_meal BOOLEAN NOT NULL DEFAULT false,
+    reason TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_bookings_employee_id ON bookings(employee_id);
 CREATE INDEX IF NOT EXISTS idx_bookings_booking_date ON bookings(booking_date);
 CREATE INDEX IF NOT EXISTS idx_bookings_payment_status ON bookings(payment_status);
 CREATE INDEX IF NOT EXISTS idx_employees_email ON employees(email);
+CREATE INDEX IF NOT EXISTS idx_available_dates_date ON available_dates(date);
+CREATE INDEX IF NOT EXISTS idx_available_dates_is_available ON available_dates(is_available);
 
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -66,6 +79,13 @@ CREATE TRIGGER update_settings_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+-- Create trigger for available_dates table
+DROP TRIGGER IF EXISTS update_available_dates_updated_at ON available_dates;
+CREATE TRIGGER update_available_dates_updated_at
+    BEFORE UPDATE ON available_dates
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- =====================================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
 -- =====================================================
@@ -74,6 +94,7 @@ CREATE TRIGGER update_settings_updated_at
 ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE available_dates ENABLE ROW LEVEL SECURITY;
 
 -- =====================================================
 -- EMPLOYEES TABLE POLICIES
@@ -139,7 +160,7 @@ CREATE POLICY "Users can create their own bookings"
 ON bookings FOR INSERT
 WITH CHECK (employee_id = auth.uid());
 
--- Allow users to update their own pending bookings (for cancellation)
+-- Allow users to update their own pending bookings (for edit/resubmit)
 CREATE POLICY "Users can update their own pending bookings"
 ON bookings FOR UPDATE
 USING (employee_id = auth.uid() AND payment_status = 'pending')
@@ -188,6 +209,29 @@ USING (true);
 -- Only admins can modify settings
 CREATE POLICY "Only admins can modify settings"
 ON settings FOR ALL
+USING (
+    EXISTS (
+        SELECT 1 FROM employees
+        WHERE id = auth.uid() AND role = 'admin'
+    )
+);
+
+-- =====================================================
+-- AVAILABLE_DATES TABLE POLICIES
+-- =====================================================
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Everyone can view available dates" ON available_dates;
+DROP POLICY IF EXISTS "Only admins can modify available dates" ON available_dates;
+
+-- Allow everyone to read available dates
+CREATE POLICY "Everyone can view available dates"
+ON available_dates FOR SELECT
+USING (true);
+
+-- Only admins can modify available dates
+CREATE POLICY "Only admins can modify available dates"
+ON available_dates FOR ALL
 USING (
     EXISTS (
         SELECT 1 FROM employees
